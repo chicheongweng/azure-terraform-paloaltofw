@@ -1,0 +1,6 @@
+az login
+az vm image accept-terms --urn paloaltonetworks:vmseries1:byol:9.0.1
+terraform init
+terraform plan
+terraform apply
+
