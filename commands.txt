@@ -1,5 +1,5 @@
 az login
-az vm image accept-terms --urn paloaltonetworks:vmseries1:byol:9.0.1
+az vm image terms accept --publisher paloaltonetworks --offer vmseries1 --plan bundle2
 terraform init
 terraform plan
 terraform apply
