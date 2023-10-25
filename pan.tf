@@ -177,7 +177,7 @@ resource "azurerm_virtual_machine" "PAN_FW_FW" {
   os_profile {
     computer_name  = var.FirewallVmName
     admin_username = "fwadmin"
-    admin_password = "password"
+    admin_password = "768DvbL6L@#xxxx"
     # Required to use the Panaroma bootstrap process
     # If you don't plan to use the bootstrap process comment out the custom_data field
     custom_data = join(

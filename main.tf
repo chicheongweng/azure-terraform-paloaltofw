@@ -253,7 +253,7 @@ resource "azurerm_virtual_machine" "vdi0" {
   os_profile {
     computer_name  = "example-vdi0"
     admin_username = "fwadmin"
-    admin_password = "password"
+    admin_password = "768DvbL6L@#xxxx"
   }
   
   os_profile_windows_config {
