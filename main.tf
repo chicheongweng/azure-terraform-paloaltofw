@@ -1,7 +1,17 @@
+terraform {
+  backend "local" {
+  }
+ 
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "3.44.1"
+    }
+  }
+ 
+}
+ 
 provider "azurerm" {
-  # The "feature" block is required for AzureRM provider 2.x. 
-  # If you are using version 1.x, the "features" block is not allowed.
-  version = "~>2.0"
   features {}
 }
 
@@ -10,7 +20,7 @@ provider "azurerm" {
 ###########################
 
 resource "azurerm_resource_group" "vnet" {
-  name     = join("", list(var.prefix, "-rg"))
+  name     = join("", tolist([var.prefix, "-rg"]))
   location = var.location
 }
 
@@ -19,8 +29,8 @@ resource "azurerm_resource_group" "vnet" {
 ###########################
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = join("", list(var.prefix, "-vnet"))
-  address_space       = [ join("", list(var.IPAddressPrefix, ".0.0/16")) ]
+  name                = join("", tolist([var.prefix, "-vnet"]))
+  address_space       = [ join("", tolist([var.IPAddressPrefix, ".0.0/16"])) ]
   location            = azurerm_resource_group.vnet.location
   resource_group_name = azurerm_resource_group.vnet.name
  # dns_servers = [ "10.54.0.100","10.51.255.164"]
@@ -35,7 +45,7 @@ resource "azurerm_subnet" "fwmgmt" {
   name                 = "fwmgmt"
   resource_group_name  = azurerm_resource_group.vnet.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = [ join("", list(var.IPAddressPrefix, ".1.0/24")) ]
+  address_prefixes     = [ join("", tolist([var.IPAddressPrefix, ".1.0/24"])) ]
 }
 
 # PAN FW outside
@@ -43,7 +53,7 @@ resource "azurerm_subnet" "fwuntrust" {
   name                 = "fwuntrust"
   resource_group_name  = azurerm_resource_group.vnet.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = [ join("", list(var.IPAddressPrefix, ".2.0/24")) ]
+  address_prefixes     = [ join("", tolist([var.IPAddressPrefix, ".2.0/24"])) ]
 }
 
 # PAN FW inside
@@ -51,7 +61,7 @@ resource "azurerm_subnet" "fwtrust" {
   name                 = "fwtrust"
   resource_group_name  = azurerm_resource_group.vnet.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = [ join("", list(var.IPAddressPrefix, ".3.0/24")) ]
+  address_prefixes     = [ join("", tolist([var.IPAddressPrefix, ".3.0/24"])) ]
 }
 
 # private server subnet
@@ -60,7 +70,7 @@ resource "azurerm_subnet" "private" {
   name                 = "private"
   resource_group_name  = azurerm_resource_group.vnet.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = [ join("", list(var.IPAddressPrefix, ".4.0/24")) ]
+  address_prefixes     = [ join("", tolist([var.IPAddressPrefix, ".4.0/24"])) ]
 # Add Azure service endpoints needed in this subnet
   service_endpoints    = [ "Microsoft.Storage" ]
 }
@@ -71,7 +81,7 @@ resource "azurerm_subnet" "public" {
   name                 = "public"
   resource_group_name  = azurerm_resource_group.vnet.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = [ join("", list(var.IPAddressPrefix, ".5.0/24")) ]
+  address_prefixes     = [ join("", tolist([var.IPAddressPrefix, ".5.0/24"])) ]
   # Add Azure service endpoints needed in this subnet
   service_endpoints    = [ "Microsoft.Storage" ]
 
@@ -83,7 +93,7 @@ resource "azurerm_subnet" "vdesktop" {
   name                 = "vdesktop"
   resource_group_name  = azurerm_resource_group.vnet.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = [ join("", list(var.IPAddressPrefix, ".6.0/24")) ]
+  address_prefixes     = [ join("", tolist([var.IPAddressPrefix, ".6.0/24"])) ]
   # Add Azure service endpoints needed in this subnet
   service_endpoints    = [ "Microsoft.Storage" ]
 }
@@ -93,7 +103,7 @@ resource "azurerm_subnet" "bastion" {
   name                 = "AzureBastionSubnet"
   resource_group_name  = azurerm_resource_group.vnet.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = [ join("", list(var.IPAddressPrefix, ".7.0/24")) ]
+  address_prefixes     = [ join("", tolist([var.IPAddressPrefix, ".7.0/24"])) ]
 }
 
 ###########################
@@ -102,17 +112,17 @@ resource "azurerm_subnet" "bastion" {
 
 # Create a public IP address for the bastion service
 resource "azurerm_public_ip" "bastion" {
-  name                = join("", list(var.prefix, "-bastion"))
+  name                = join("", tolist([var.prefix, "-bastion"]))
   resource_group_name = azurerm_resource_group.vnet.name
   location            = azurerm_resource_group.vnet.location
   allocation_method   = "Static"
   sku                 = "Standard"
-  domain_name_label   = join("", list("scb", substr(md5(azurerm_resource_group.vnet.id), 0, 4)))
+  domain_name_label   = join("", tolist(["scb", substr(md5(azurerm_resource_group.vnet.id), 0, 4)]))
 }
 
 # Create the bastion service
 resource "azurerm_bastion_host" "bastion" {
-  name                = join("", list(var.prefix, "-bastion"))
+  name                = join("", tolist([var.prefix, "-bastion"]))
   resource_group_name = azurerm_resource_group.vnet.name
   location            = azurerm_resource_group.vnet.location
     
@@ -129,7 +139,7 @@ resource "azurerm_bastion_host" "bastion" {
 
 # This table sends all non-vnet local traffic to the PAN firewall
 resource "azurerm_route_table" "pan_fw1" {
-  name                          = join("", list(var.prefix, "-panfw"))
+  name                          = join("", tolist([var.prefix, "-panfw"]))
   location                      = azurerm_resource_group.vnet.location
   resource_group_name           = azurerm_resource_group.vnet.name
   disable_bgp_route_propagation = false
@@ -159,7 +169,7 @@ resource "azurerm_subnet_route_table_association" "vdesktop_fw1_map" {
 # NSG For public subnet 
 ###########################
 resource "azurerm_network_security_group" "public" {
-  name                = join("", list(var.prefix, "-publicdmz"))
+  name                = join("", tolist([var.prefix, "-publicdmz"]))
   location            = azurerm_resource_group.vnet.location
   resource_group_name = azurerm_resource_group.vnet.name
   
@@ -186,7 +196,7 @@ resource "azurerm_network_security_group" "public" {
     source_port_range          = "*"
     destination_port_range     = "*"
     source_address_prefix      = "*"
-    destination_address_prefix = join("", list(var.IPAddressPrefix, ".0.0/16"))
+    destination_address_prefix = join("", tolist([var.IPAddressPrefix, ".0.0/16"]))
   }
 }
 
@@ -242,8 +252,8 @@ resource "azurerm_virtual_machine" "vdi0" {
 
   os_profile {
     computer_name  = "example-vdi0"
-    admin_username = "adminzzz"
-    admin_password = "!!!CHANGE ME!!!"
+    admin_username = "fwadmin"
+    admin_password = "password"
   }
   
   os_profile_windows_config {

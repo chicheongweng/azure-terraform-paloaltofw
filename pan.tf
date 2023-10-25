@@ -5,13 +5,13 @@
 
 # PAN FW Resource Group
 resource "azurerm_resource_group" "PAN_FW_RG" {
-  name     = join("", list(var.prefix, "-fw-rg"))
+  name     = join("", tolist([var.prefix, "-fw-rg"]))
   location = var.location
 }
 
 # Storage Acct for FW disk
 resource "azurerm_storage_account" "PAN_FW_STG_AC" {
-  name                = join("", list(var.StorageAccountName, substr(md5(azurerm_resource_group.PAN_FW_RG.id), 0, 4)))
+  name                = join("", tolist([var.StorageAccountName, substr(md5(azurerm_resource_group.PAN_FW_RG.id), 0, 4)]))
   resource_group_name = azurerm_resource_group.PAN_FW_RG.name
   location            = azurerm_resource_group.PAN_FW_RG.location
   account_replication_type = "LRS"
@@ -20,17 +20,17 @@ resource "azurerm_storage_account" "PAN_FW_STG_AC" {
 
 # Public IP for PAN mgmt Intf
 resource "azurerm_public_ip" "pan_mgmt" {
-  name                = join("", list(var.prefix, "-fw-mgmt"))
+  name                = join("", tolist([var.prefix, "-fw-mgmt"]))
   location            = azurerm_resource_group.PAN_FW_RG.location
   resource_group_name = azurerm_resource_group.PAN_FW_RG.name
   allocation_method   = "Static"
   # Handy to give it a Domain name
-  domain_name_label   = join("", list(var.FirewallDnsName, substr(md5(azurerm_resource_group.PAN_FW_RG.id), 0, 4)))
+  domain_name_label   = join("", tolist([var.FirewallDnsName, substr(md5(azurerm_resource_group.PAN_FW_RG.id), 0, 4)]))
 }
 
 # Public IP for PAN untrust interface
 resource "azurerm_public_ip" "pan_untrust" {
-  name                = join("", list(var.prefix, "-fw-untrust"))
+  name                = join("", tolist([var.prefix, "-fw-untrust"]))
   location            = azurerm_resource_group.PAN_FW_RG.location
   resource_group_name = azurerm_resource_group.PAN_FW_RG.name
   allocation_method   = "Static"
@@ -38,7 +38,7 @@ resource "azurerm_public_ip" "pan_untrust" {
 
 # NSG For PAN Mgmt Interface
 resource "azurerm_network_security_group" "pan_mgmt" {
-  name                = join("", list(var.prefix, "-panmgmt"))
+  name                = join("", tolist([var.prefix, "-panmgmt"]))
   location            = azurerm_resource_group.PAN_FW_RG.location
   resource_group_name = azurerm_resource_group.PAN_FW_RG.name
 
@@ -52,7 +52,7 @@ resource "azurerm_network_security_group" "pan_mgmt" {
     source_port_range          = "*"
     destination_port_range     = "*"
     # Add the source IP address that will be used to access the FW mgmt interface
-    source_address_prefixes      = ["!!!CHANGE ME!!!"]                         
+    source_address_prefixes      = ["0.0.0.0/32"]                         
     destination_address_prefix = "*"
   }
   
@@ -77,7 +77,7 @@ resource "azurerm_subnet_network_security_group_association" "pan_mgmt" {
 
 # PAN mgmt VNIC
 resource "azurerm_network_interface" "FW_VNIC0" {
-  name                = join("", list(var.prefix, "-fwmgmt0"))
+  name                = join("", tolist([var.prefix, "-fwmgmt0"]))
   location            = azurerm_resource_group.PAN_FW_RG.location
   resource_group_name = azurerm_resource_group.PAN_FW_RG.name
  
@@ -98,7 +98,7 @@ resource "azurerm_network_interface" "FW_VNIC0" {
 
 # PAN untrust VNIC
 resource "azurerm_network_interface" "FW_VNIC1" {
-  name                = join("", list(var.prefix, "-fwethernet1_1"))
+  name                = join("", tolist([var.prefix, "-fwethernet1_1"]))
   location            = azurerm_resource_group.PAN_FW_RG.location
   resource_group_name = azurerm_resource_group.PAN_FW_RG.name
 
@@ -110,7 +110,7 @@ resource "azurerm_network_interface" "FW_VNIC1" {
     name                          = "ipconfig1"
     subnet_id                     = azurerm_subnet.fwuntrust.id
     private_ip_address_allocation = "Static"
-    private_ip_address            = join("", list(var.IPAddressPrefix, ".2.4"))
+    private_ip_address            = join("", tolist([var.IPAddressPrefix, ".2.4"]))
     # Untrusted interface has static public IP address
     public_ip_address_id          = azurerm_public_ip.pan_untrust.id
   }
@@ -122,7 +122,7 @@ resource "azurerm_network_interface" "FW_VNIC1" {
 
 # PAN trust VNIC
 resource "azurerm_network_interface" "FW_VNIC2" {
-  name                = join("", list(var.prefix, "-fwethernet1_2"))
+  name                = join("", tolist([var.prefix, "-fwethernet1_2"]))
   location            = azurerm_resource_group.PAN_FW_RG.location
   resource_group_name = azurerm_resource_group.PAN_FW_RG.name
   
@@ -134,7 +134,7 @@ resource "azurerm_network_interface" "FW_VNIC2" {
     name                          = "ipconfig2"
     subnet_id                     = azurerm_subnet.fwtrust.id
     private_ip_address_allocation = "Static"
-    private_ip_address            = join("", list(var.IPAddressPrefix, ".3.4"))
+    private_ip_address            = join("", tolist([var.IPAddressPrefix, ".3.4"]))
   }
 
   tags = {
@@ -168,7 +168,7 @@ resource "azurerm_virtual_machine" "PAN_FW_FW" {
   }
 
   storage_os_disk {
-    name          = join("", list(var.FirewallVmName, "-osDisk"))
+    name          = join("", tolist([var.FirewallVmName, "-osDisk"]))
     vhd_uri       = "${azurerm_storage_account.PAN_FW_STG_AC.primary_blob_endpoint}vhds/${var.FirewallVmName}-osdisk1.vhd"
     caching       = "ReadWrite"
     create_option = "FromImage"
@@ -176,8 +176,8 @@ resource "azurerm_virtual_machine" "PAN_FW_FW" {
 
   os_profile {
     computer_name  = var.FirewallVmName
-    admin_username = "panzadmins"
-    admin_password = "!!!CHANGE ME!!!"
+    admin_username = "fwadmin"
+    admin_password = "password"
     # Required to use the Panaroma bootstrap process
     # If you don't plan to use the bootstrap process comment out the custom_data field
     custom_data = join(
@@ -188,8 +188,8 @@ resource "azurerm_virtual_machine" "PAN_FW_FW" {
        # init-cfg must be stored in the "bootstrap" file share in the "config" folder
        # These paramters must be correct for the PAN to download the init-cfg.txt
        # init-cfg.txt requires 2 paramters the panorama IP address and authorization key
-       "storage-account=!!!CHANGE ME!!!",
-       "access-key=!!!CHANGE ME!!!",
+       "storage-account=sapaloaltonetworksfw",
+       "access-key=fiTbx7oNAfeh1wcChp4cn5CoXjxuxFBInNsg9jsvvzrbzHVGYKvWIKHZJwbSfSLjmav/M0vvbiUU+AStCsBHHg==",
        "file-share=bootstrap",
        "share-directory=None"
       ],
@@ -208,9 +208,9 @@ resource "azurerm_virtual_machine" "PAN_FW_FW" {
 }
 
 output "FirewallMgmtFQDN" {
-  value = join("", list("https://", azurerm_public_ip.pan_mgmt.fqdn))
+  value = join("", tolist(["https://", azurerm_public_ip.pan_mgmt.fqdn]))
 }
 
 output "FirewallMgmtIP" {
-  value = join("", list("https://", azurerm_public_ip.pan_mgmt.ip_address))
+  value = join("", tolist(["https://", azurerm_public_ip.pan_mgmt.ip_address]))
 }
